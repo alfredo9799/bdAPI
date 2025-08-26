@@ -1,98 +1,94 @@
 
--- Tabla: Direcciones
--- Almacena la información de las direcciones de los clientes.
-CREATE TABLE Direcciones (
-    ID_Direccion INT PRIMARY KEY,
-    Calle VARCHAR(255),
-    Numero VARCHAR(50),
-    Ciudad VARCHAR(100),
-    Estado VARCHAR(100),
-    CodigoPostal VARCHAR(20),
-    Pais VARCHAR(100)
+USE GestionDatos;
+GO
+
+-- Tabla de Estatus de Cliente
+CREATE TABLE ESTATUS_CLIENTE (
+    estatus_cliente_id INT PRIMARY KEY,
+    nombre_estatus VARCHAR(100) NOT NULL
 );
 
--- Tabla: Clientes
--- Guarda los datos personales de los clientes y establece la relación con la dirección.
-CREATE TABLE Clientes (
-    ID_Cliente INT PRIMARY KEY,
-    Nombre VARCHAR(100),
-    Apellido VARCHAR(100),
-    Telefono VARCHAR(50),
-    ID_Direccion INT,
-    FOREIGN KEY (ID_Direccion) REFERENCES Direcciones(ID_Direccion)
+-- Tabla de Género
+CREATE TABLE GENERO (
+    genero_id INT PRIMARY KEY,
+    nombre_genero VARCHAR(50) NOT NULL
 );
 
--- Tabla: TiposCuenta
--- Define los tipos de cuentas disponibles, como 'Ahorros' o 'Corriente'.
-CREATE TABLE TiposCuenta (
-    ID_TipoCuenta INT PRIMARY KEY,
-    Nombre_Tipo VARCHAR(50),
-    Descripcion VARCHAR(255),
-    Tasa_Interes FLOAT
+-- Tabla de Dirección
+CREATE TABLE DIRECCION (
+    direccion_id INT IDENTITY(1,1) PRIMARY KEY,
+    calle VARCHAR(50) NOT NULL,
+    numero_interior INT NULL,
+    numero_exterior INT NOT NULL,
+    ciudad VARCHAR(50) NOT NULL,
+    estado VARCHAR(50) NOT NULL,
+    codigo_postal VARCHAR(10) NOT NULL
 );
 
--- Tabla: Cuentas
--- Contiene las cuentas bancarias de los clientes, vinculadas a un cliente y a un tipo de cuenta.
-CREATE TABLE Cuentas (
-    Numero_Cuenta INT PRIMARY KEY,
-    Saldo DECIMAL(10, 2),
-    Fecha_Creacion DATE,
-    ID_Cliente INT,
-    ID_TipoCuenta INT,
-    FOREIGN KEY (ID_Cliente) REFERENCES Clientes(ID_Cliente),
-    FOREIGN KEY (ID_TipoCuenta) REFERENCES TiposCuenta(ID_TipoCuenta)
+-- Tabla de Cliente
+CREATE TABLE CLIENTE (
+    cliente_id INT IDENTITY(1,1) PRIMARY KEY,
+    primer_nombre VARCHAR(90) NOT NULL,
+    segundo_nombre VARCHAR(90) NULL,
+    primer_apellido VARCHAR(100) NOT NULL,
+    segundo_apellido VARCHAR(100) NOT NULL,
+    nacionalidad VARCHAR(80) NULL,
+    ocupacion VARCHAR(100) NULL,
+    estatus_cliente_id INT NOT NULL,
+    genero_id INT NOT NULL,
+    telefono VARCHAR(25) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    direccion_id INT NULL,
+    fecha_nacimiento DATE NOT NULL,
+    fecha_creacion DATETIME DEFAULT GETDATE(),
+    CONSTRAINT UQ_cliente_email UNIQUE (email),
+    CONSTRAINT FK_cliente_estatus FOREIGN KEY (estatus_cliente_id) REFERENCES ESTATUS_CLIENTE(estatus_cliente_id),
+    CONSTRAINT FK_cliente_genero FOREIGN KEY (genero_id) REFERENCES GENERO(genero_id),
+    CONSTRAINT FK_cliente_direccion FOREIGN KEY (direccion_id) REFERENCES DIRECCION(direccion_id),
+    CONSTRAINT CHK_Email_Format CHECK (email LIKE '%_@_%._%')
 );
 
--- Tabla: Movimientos
--- Registra cada transacción o movimiento realizado en una cuenta específica.
-CREATE TABLE Movimientos (
-    ID_Movimiento INT PRIMARY KEY,
-    Fecha DATE,
-    Tipo VARCHAR(50),
-    Monto DECIMAL(10, 2),
-    Numero_Cuenta INT,
-    FOREIGN KEY (Numero_Cuenta) REFERENCES Cuentas(Numero_Cuenta)
+-- Tabla de Estatus de Cuenta
+CREATE TABLE ESTATUS_CUENTA (
+    estatus_cuenta_id INT PRIMARY KEY,
+    estatus_cuenta VARCHAR(50) NOT NULL
 );
 
+-- Tabla de Cuenta (corregida la relación 1:1 a 1:N)
+CREATE TABLE CUENTA (
+    cuenta_id INT IDENTITY(1,1) PRIMARY KEY,
+    fecha_creacion DATE NOT NULL,
+    saldo_inicial DECIMAL(19,4) NOT NULL,
+    saldo DECIMAL(19,4) NOT NULL,
+    estatus_cuenta_id INT NOT NULL,
+    cliente_id INT NOT NULL,
+    fecha_actualizacion DATETIME DEFAULT GETDATE(),
+    CONSTRAINT FK_cuenta_estatus FOREIGN KEY (estatus_cuenta_id) REFERENCES ESTATUS_CUENTA(estatus_cuenta_id),
+    CONSTRAINT FK_cuenta_cliente FOREIGN KEY (cliente_id) REFERENCES CLIENTE(cliente_id),
+    CONSTRAINT CHK_Saldo_Positivo CHECK (saldo >= 0),
+    CONSTRAINT CHK_Saldo_Inicial_Positivo CHECK (saldo_inicial >= 0)
+);
 
--- ######################################################################
--- #                     INSERCIÓN DE DATOS                             #
--- ######################################################################
+-- Tabla de Tipo de Transacción
+CREATE TABLE TIPO_TRANSACCION (
+    transaccion_id INT PRIMARY KEY,
+    tipo_transaccion VARCHAR(50) NOT NULL,
+    tipo_operacion VARCHAR(50) NOT NULL
+);
 
--- Insertar datos en la tabla Direcciones
-INSERT INTO Direcciones (ID_Direccion, Calle, Numero, Ciudad, Estado, CodigoPostal, Pais) VALUES
-(1, 'Avenida Principal', '123', 'Madrid', 'Comunidad de Madrid', '28001', 'España'),
-(2, 'Calle Falsa', '45', 'Barcelona', 'Cataluña', '08001', 'España'),
-(3, 'Paseo de la Castellana', '789', 'Madrid', 'Comunidad de Madrid', '28046', 'España'),
-(4, 'Gran Vía', '10', 'Madrid', 'Comunidad de Madrid', '28013', 'España'),
-(5, 'Calle del Sol', '22', 'Valencia', 'Comunidad Valenciana', '46001', 'España');
+-- Tabla de Movimiento
+CREATE TABLE MOVIMIENTO (
+    movimiento_id INT IDENTITY(1,1) PRIMARY KEY,
+    cantidad DECIMAL(19,4) NOT NULL,
+    fecha_transaccion DATE NOT NULL,
+    cuenta_id INT NOT NULL,
+    transaccion_id INT NOT NULL,
+    CONSTRAINT FK_movimiento_cuenta FOREIGN KEY (cuenta_id) REFERENCES CUENTA(cuenta_id),
+    CONSTRAINT FK_movimiento_transaccion FOREIGN KEY (transaccion_id) REFERENCES TIPO_TRANSACCION(transaccion_id)
+);
 
--- Insertar datos en la tabla Clientes
-INSERT INTO Clientes (ID_Cliente, Nombre, Apellido, Telefono, ID_Direccion) VALUES
-(101, 'Ana', 'García', '601-123-456', 1),
-(102, 'Luis', 'Pérez', '602-987-654', 2),
-(103, 'Sofía', 'Martínez', '603-111-222', 3),
-(104, 'Carlos', 'López', '604-333-444', 4),
-(105, 'María', 'Hernández', '605-555-666', 5);
-
--- Insertar datos en la tabla TiposCuenta
-INSERT INTO TiposCuenta (ID_TipoCuenta, Nombre_Tipo, Descripcion, Tasa_Interes) VALUES
-(1, 'Ahorros', 'Cuenta para ahorrar dinero con intereses.', 1.5),
-(2, 'Corriente', 'Cuenta para transacciones diarias sin intereses.', 0.25),
-(3, 'Inversión', 'Cuenta para inversiones de alto rendimiento.', 3.0);
-
--- Insertar datos en la tabla Cuentas
-INSERT INTO Cuentas (Numero_Cuenta, Saldo, Fecha_Creacion, ID_Cliente, ID_TipoCuenta) VALUES
-(1001, 5000.50, '2022-01-15', 101, 1),
-(1002, 1200.00, '2022-02-20', 102, 2),
-(1003, 15000.75, '2022-03-10', 103, 3),
-(1004, 300.00, '2022-04-05', 104, 2),
-(1005, 8000.25, '2022-05-30', 105, 1);
-
--- Insertar datos en la tabla Movimientos
-INSERT INTO Movimientos (ID_Movimiento, Fecha, Tipo, Monto, Numero_Cuenta) VALUES
-(2001, '2023-01-20', 'Depósito', 200.00, 1001),
-(2002, '2023-01-25', 'Retiro', 50.00, 1002),
-(2003, '2023-02-01', 'Transferencia', 1000.00, 1003),
-(2004, '2023-02-05', 'Depósito', 50.00, 1004),
-(2005, '2023-02-10', 'Retiro', 250.00, 1005);
+-- Creación de índices para mejorar el rendimiento
+CREATE INDEX IX_MOVIMIENTO_FECHA ON MOVIMIENTO(fecha_transaccion);
+CREATE INDEX IX_CUENTA_FECHA_CREACION ON CUENTA(fecha_creacion);
+CREATE INDEX IX_CUENTA_CLIENTE ON CUENTA(cliente_id);
+CREATE INDEX IX_CLIENTE_EMAIL ON CLIENTE(email);
